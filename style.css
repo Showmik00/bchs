@@ -76,6 +76,7 @@ h2{font-size:clamp(32px,4.5vw,56px);margin-bottom:16px}
 .nb{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
 .nb .sp b{font-size:15px;color:var(--ac);font-family:var(--fb);font-weight:500}
 .nb .sp h3{margin:6px 0 10px}.nb .b{margin-top:16px}
+.nb .sp time{display:block;font-size:13px;opacity:.7;margin-top:2px}.nb .sp.pin{border-color:var(--ac2)}
 .cta{margin:0 6vw 80px;border-radius:36px;padding:64px;background:linear-gradient(120deg,var(--ac),#0B5C3D);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
 .cta h2{margin:0;max-width:620px}.cta .b{background:#fff;color:#0B1F17}
 footer{padding:40px 6vw 90px;color:var(--mut);text-align:center;line-height:1.9}

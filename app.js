@@ -32,16 +32,51 @@
   const WORDS = () => T(['শিখি।', 'জানি।', 'নিজেকে গড়ি।', 'এগিয়ে যাই।'], ['learn.', 'lead.', 'grow.', 'shine.']);
   const CLASS_LIST = () => T(['শিশু', 'প্রথম', 'দ্বিতীয়', 'তৃতীয়', 'চতুর্থ', 'পঞ্চম', 'ষষ্ঠ', 'সপ্তম', 'অষ্টম', 'নবম', 'দশম'],
     ['Nursery', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10']);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const MONTHS = [['জানুয়ারি', 'January'], ['ফেব্রুয়ারি', 'February'], ['মার্চ', 'March'], ['এপ্রিল', 'April'], ['মে', 'May'], ['জুন', 'June'], ['জুলাই', 'July'], ['আগস্ট', 'August'], ['সেপ্টেম্বর', 'September'], ['অক্টোবর', 'October'], ['নভেম্বর', 'November'], ['ডিসেম্বর', 'December']];
+  const fdate = s => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
+    if (!m || +m[2] < 1 || +m[2] > 12) return '';
+    return N(+m[3]) + ' ' + T(MONTHS[+m[2] - 1][0], MONTHS[+m[2] - 1][1]) + ' ' + N(m[1]);
+  };
 
-  function view() {
-    const S = NAME();
-    const notices = [
+  // notices written in the school software (Website_Upload/notices.json uploaded next to this file)
+  let NOTICES = [];
+  const pick = o => (o && typeof o === 'object' ? String((LANG === 'en' && o.en) ? o.en : (o.bn || o.en || '')) : '');
+  const noticeText = n => ({ t: pick(n.t).slice(0, 200), b: pick(n.b).slice(0, 4000) });
+  function noticeCards() {
+    return NOTICES.slice(0, 6).map(n => {
+      const x = noticeText(n);
+      return `<div class="sp${n.pin ? ' pin' : ''}"><b>${n.pin ? '📌' : '📢'} ${T('নোটিশ', 'Notice')}</b>${fdate(n.d) ? `<time datetime="${esc(n.d)}">${fdate(n.d)}</time>` : ''}<h3>${esc(x.t)}</h3>${x.b ? `<p>${esc(x.b).replace(/\r?\n/g, '<br>')}</p>` : ''}</div>`;
+    }).join('');
+  }
+  function loadNotices() {
+    if (!window.fetch) return;
+    fetch('notices.json', { cache: 'no-cache', credentials: 'omit' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(j => {
+        if (!j || !Array.isArray(j.items)) return;
+        NOTICES = j.items.filter(n => n && typeof n === 'object' && pick(n.t).trim()).slice(0, 40);
+        if (!NOTICES.length) return;
+        const box = $('#nbList'), mq = $('#mqIn');
+        if (box) box.innerHTML = noticeCards() + box.querySelector('.res').outerHTML;
+        if (mq) mq.innerHTML = marquee();
+      })
+      .catch(() => { /* no notices file yet */ });
+  }
+  function marquee() {
+    const base = [
       T('টেস্ট এক্সাম-২০২৬-এর ফলাফল প্রকাশিত — অনলাইনে রোল নং দিয়ে দেখুন', 'Test Exam-2026 result published — check online with your roll number'),
       T('নতুন শিক্ষাবর্ষে শিশু থেকে নবম শ্রেণি পর্যন্ত ভর্তি তথ্য দেখুন', 'Admission information for Nursery to Class 9 in the new academic year'),
       T('অফিস সময়: রবি–বৃহস্পতি, সকাল ১০টা – বিকাল ৪টা', 'Office hours: Sun–Thu, 10 AM – 4 PM'),
       T('শিক্ষাই জাতির মেরুদণ্ড', 'Education is the backbone of the nation')
     ];
-    const mq = notices.concat(notices).map(n => `<span>${n}</span><span aria-hidden="true">★</span>`).join('');
+    const list = NOTICES.slice(0, 5).map(n => esc(noticeText(n).t)).concat(base);
+    return list.concat(list).map(n => `<span>${n}</span><span aria-hidden="true">★</span>`).join('');
+  }
+
+  function view() {
+    const S = NAME();
     return `<a class="skip" href="#main" data-a="skip">${T('মূল অংশে যান', 'Skip to content')}</a>
 <div id="pg"></div>
 <nav id="nv" aria-label="${T('মূল মেনু', 'Main menu')}">
@@ -65,7 +100,7 @@
     <div class="gl">${T('বছরের পথচলা', 'Years of service')}<b data-count="${YEARS}">${N(YEARS)}</b></div>
   </div></div>
 </header>
-<div class="mq" role="marquee" aria-label="${T('নোটিশ', 'Notices')}"><div>${mq}</div></div>
+<div class="mq" role="marquee" aria-label="${T('নোটিশ', 'Notices')}"><div id="mqIn">${marquee()}</div></div>
 <main id="main" tabindex="-1">
 <section id="result"><h2 class="rv">${T('এক জায়গায় সব তথ্য', 'Everything in one place')}</h2><p class="sub rv d1">${T('ফলাফল, ভর্তি আর একাডেমিক তথ্য — সব সময় হালনাগাদ।', 'Results, admission and academic information — always up to date.')}</p>
   <div class="tabs rv d2" role="tablist">
@@ -92,9 +127,9 @@
   <div class="sp rv d3"><b data-count="${YEARS}">${N(YEARS)}</b>${T('বছরের পথচলা', 'Years of service')}</div>
 </div></section>
 <section id="notice" class="pt0"><h2 class="rv">${T('নোটিশ বোর্ড', 'Notice board')}</h2><p class="sub rv d1">${T('বিদ্যালয়ের বিজ্ঞপ্তি, নির্দেশনা ও ঘোষণা।', 'School notices, instructions and announcements.')}</p>
-  <div class="nb">
-    <div class="sp rv"><b>📊 ${T('ফলাফল', 'Result')}</b><h3>${T('টেস্ট এক্সাম-২০২৬-এর ফলাফল প্রকাশিত', 'Test Exam-2026 result published')}</h3><p>${T('দশম শ্রেণির শিক্ষার্থীরা পরীক্ষা, শ্রেণি, শাখা ও রোল নং দিয়ে অনলাইনে নিজের ফলাফল দেখতে পারবে।', 'Class 10 students can check their own result online with exam, class, section and roll number.')}</p>${ext('sm', T('রেজাল্ট দেখুন →', 'Check result →'))}</div>
-    <div class="sp rv d1"><b>📌 ${T('সাধারণ', 'General')}</b><h3>${T('সাধারণ বিজ্ঞপ্তি', 'General notices')}</h3><p>${T('বর্তমানে কোনো সাধারণ বিজ্ঞপ্তি প্রকাশ করা হয়নি।', 'No general notice has been published yet.')}</p></div>
+  <div class="nb" id="nbList">${noticeCards()}
+    <div class="sp rv res"><b>📊 ${T('ফলাফল', 'Result')}</b><h3>${T('টেস্ট এক্সাম-২০২৬-এর ফলাফল প্রকাশিত', 'Test Exam-2026 result published')}</h3><p>${T('দশম শ্রেণির শিক্ষার্থীরা পরীক্ষা, শ্রেণি, শাখা ও রোল নং দিয়ে অনলাইনে নিজের ফলাফল দেখতে পারবে।', 'Class 10 students can check their own result online with exam, class, section and roll number.')}</p>${ext('sm', T('রেজাল্ট দেখুন →', 'Check result →'))}</div>
+    ${NOTICES.length ? '' : `<div class="sp rv d1"><b>📌 ${T('সাধারণ', 'General')}</b><h3>${T('সাধারণ বিজ্ঞপ্তি', 'General notices')}</h3><p>${T('বর্তমানে কোনো সাধারণ বিজ্ঞপ্তি প্রকাশ করা হয়নি।', 'No general notice has been published yet.')}</p></div>`}
   </div>
 </section>
 <section id="gallery"><h2 class="rv">${T('আমাদের ক্যাম্পাস', 'Our campus')}</h2><p class="sub rv d1">${T('প্যানেলের উপর মাউস রাখুন বা চাপুন।', 'Hover over or tap a panel to explore.')}</p>
@@ -221,6 +256,7 @@
   });
   window.addEventListener('scroll', onScroll, { passive: true });
   render(true);
+  loadNotices();
   const h = window.location.hash.slice(1);
   if (h && document.getElementById(h)) document.getElementById(h).scrollIntoView();
 })();
